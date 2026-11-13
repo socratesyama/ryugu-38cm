@@ -1,0 +1,65 @@
+:root{--sab:env(safe-area-inset-bottom,0px)}
+html,body{overscroll-behavior:none;-webkit-text-size-adjust:100%;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+body button{touch-action:manipulation}
+#flightpad{display:none}
+
+@media (pointer:coarse),(max-width:640px){
+  body #spacebtn{transform:scale(.78);transform-origin:100% 0}
+  body #spacebtn:hover{transform:scale(.78)}
+  body #spacebtn:active{transform:scale(.75)}
+  body #mmap-small{top:calc(var(--edge-t) + 56px);width:104px;height:104px}
+  body #icons{top:calc(var(--edge-t) + 172px);transform:none;gap:4px}
+  body #icons button{width:40px;height:40px;padding:8px}
+
+  body #hud{font-size:11px;line-height:1.55;letter-spacing:0;padding:5px 22px 4px 9px;
+    width:max-content;max-width:calc(100vw - var(--edge-l) - var(--edge-r) - 111px);
+    pointer-events:auto;cursor:pointer;overflow:hidden;white-space:normal;text-shadow:none}
+  body #hud>div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  body #hud #h3,body #hud #h4{display:none}
+  body.flying #hud #h3{display:block}
+  body #hud::before{content:"▾";position:absolute;right:7px;top:4px;font-size:10px;line-height:1.55;color:var(--muted)}
+  body #hud.open{max-height:calc(100dvh - var(--edge-t) - var(--dock) - 24px);overflow-y:auto;touch-action:pan-y}
+  body #hud.open>div{white-space:pre-wrap;overflow:visible;text-overflow:clip;overflow-wrap:anywhere}
+  body #hud.open #h3,body #hud.open #h4{display:block}
+  body #hud.open::before{content:"▴"}
+
+  body #hint{top:calc(var(--edge-t) + 56px);bottom:auto;left:var(--edge-l);transform:none;width:max-content;
+    max-width:calc(100vw - var(--edge-l) - var(--edge-r) - 111px);text-align:left;font-size:12px;line-height:1.6;padding:5px 10px}
+  body:has(#hud.open) #hint{opacity:0}
+
+  body #card{max-height:calc(100dvh - var(--dock) - var(--edge-t) - 16px);overflow-y:auto;overscroll-behavior:contain;touch-action:pan-y;padding:12px 14px}
+  body #card.lib{max-height:calc(100dvh - var(--dock) - var(--edge-t) - 16px)}
+  body #viewer img{max-height:78dvh}
+
+  body #cockpit .dash{gap:8px;padding:5px 10px;font-size:11px;max-width:calc(100vw - var(--edge-l) - var(--edge-r))}
+  body #cockpit .gauge b{font-size:16px}
+  body #cockpit .bars{width:52px}
+  body #cockpit .place{min-width:0;max-width:9em;padding-left:8px}
+  body #cockpit .place>small:first-child{display:none}
+
+  body #mrp .mrt span{min-width:0}
+}
+
+@media (pointer:coarse){
+  html:root{--dock:calc(112px + var(--sab))}
+  body #tslider{bottom:calc(58px + var(--sab))}
+  body #foot{bottom:calc(6px + var(--sab))}
+  body #mrp{bottom:calc(70px + var(--sab))}
+
+  body.flying #flightpad{display:flex}
+  body #flightpad{position:fixed;right:var(--edge-r);bottom:calc(var(--dock) + 12px);flex-direction:column;gap:10px;z-index:7;touch-action:none}
+  body #flightpad button{display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:64px;padding:0;
+    border-radius:50%;border:1px solid var(--accent);background:var(--panel-bg-hi);color:var(--accent-hi);font:20px/1 var(--font-hud);
+    -webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);touch-action:none;-webkit-user-select:none;user-select:none}
+  body #flightpad button small{margin-top:2px;font:11px/1.2 var(--font-jp);color:var(--fg-dim)}
+  body #flightpad button.on{background:rgba(59,130,246,.45);border-color:var(--accent-hi);box-shadow:0 0 14px rgba(59,130,246,.6)}
+}
+
+@media (max-height:520px){
+  body #icons{top:auto;bottom:calc(92px + var(--sab));right:var(--edge-r);flex-direction:row;flex-wrap:wrap;justify-content:flex-end;transform:none}
+  body #mmap-small{width:84px;height:84px}
+}
+@media (pointer:coarse) and (max-height:520px){
+  body #flightpad{flex-direction:row;bottom:calc(var(--dock) + 40px)}
+  body #flightpad button{width:56px;height:56px}
+}

@@ -1,5 +1,6 @@
 // 宇宙モード（演出E）— 右上のスイッチで入り、リュウグウ上空200mまで上昇して静止。
-//   Space: 遠ざかる / C: 近づく / WASD・矢印・ドラッグ: 「中心からの距離」を半径とする球面上を周回
+//   Space: 遠ざかる / C: 近づく / WASD・矢印: 「中心からの距離」を半径とする球面上を周回
+//   （タッチ端末は左スティックで周回、▲▼ボタンで上昇・降下。ドラッグは位置を動かさず視線だけを動かす＝main.ts側の見回し）
 //   一定の高さ(30m)より近づくと重力に捕まり、自動で着地する。
 // 操作を分かりやすくするための演出で、探査機の運動の再現ではない。ただし重力は実際の点質量GM/r²を使い、
 // 本当は十数分かかる降下を「時間圧縮×60」で見せる（重力加速度を60²倍にして実時間で積分するのと等価）。
@@ -53,14 +54,6 @@ export class SpaceFlight {
     this.wx = this.wy = 0; this.vr = 0; this.vLat = 0; this.captured = false;
   }
   private fixUp() { this.up = v3.norm(v3.sub(this.up, v3.mul(this.dir, v3.dot(this.up, this.dir)))); }
-  /** マウス/タッチのドラッグで球面上を動かす */
-  drag(dx: number, dy: number, ground: (d: V3) => number) {
-    if (this.phase !== 'free' || (!dx && !dy)) return;
-    const alt = Math.max(0, this.rad - ground(this.dir)); const c = 0.0025 * Math.min(1, Math.max(0.1, alt / this.rad));
-    const right = v3.cross(this.up, this.dir); const vt = v3.add(v3.mul(right, -dx), v3.mul(this.up, dy)); const l = v3.len(vt); if (l < 1e-9) return;
-    const axis = v3.norm(v3.cross(this.dir, vt)); const ang = l * c;
-    this.dir = v3.norm(rot(this.dir, axis, ang)); this.up = rot(this.up, axis, ang); this.fixUp();
-  }
   /** dt秒進める。着地したら true（this.touch に着地速度）。ground=局所地表半径(m)、gm=GM、eye=目の高さ(m) */
   step(dt: number, inp: SpaceInput, ground: (d: V3) => number, gm: number, eye: number): boolean {
     this.fx = null; this.touch = 0;

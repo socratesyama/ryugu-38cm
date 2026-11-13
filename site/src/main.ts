@@ -24,6 +24,7 @@ import { MiniMap } from './minimap';
 import { Annotator, featureCard, placesListHtml } from './annot';
 import { prepare, FeatureFile, PFeature, regionsAt } from './features_core';
 import { SpaceFlight, ASCEND_S, TIME_COMPRESS } from './space';
+import './mobile.css';
 
 const $ = (id: string) => document.getElementById(id)!;
 const canvas = $('gl') as HTMLCanvasElement;
@@ -41,6 +42,10 @@ const MAX_DRIVE_SLOPE = 55, MAX_DRIVE_STEP = 0.4, DRIVE_SUBSTEP = 0.2, JUMP_V = 
 const P = { dir: geoToBody(4.3, 206.47, 1) as V3, fwd: [0, 0, 1] as V3, pitch: 0, stand: 0, dip: 0 };
 let orbit: Orbit | null = null; let pastMode = false;
 let sp: SpaceFlight | null = null; let camXf: { q0: THREE.Quaternion; t: number; dur: number } | null = null; let spFxT = 0;
+const isTouch = matchMedia('(pointer:coarse)').matches; const mqCompact = matchMedia('(pointer:coarse), (max-width:640px)');
+const spLook = { yaw: 0, pitch: 0, t: 0 };   // 宇宙モードの見回し（ドラッグ）。位置は動かさず視線だけ回す
+const pad = { up: false, down: false };      // 上昇/降下ボタン（タッチ端末のみ表示）
+const wrapPi = (a: number) => Math.atan2(Math.sin(a), Math.cos(a));
 const keys = new Set<string>(); let lastInput = performance.now(); const used = new Set<string>(); const hintShown: Record<string, number> = {};
 const session: Session = { callsign: '', start: new Date().toISOString(), track: [], inspected: new Set() };
 let world: World; let G763!: Gravity, G340!: Gravity, G: Gravity; let sc!: ScTable; let sun!: Sun; let hm!: HeightMap; let terrain!: Terrain; let rocks!: Rocks; let mascot!: MascotReplay;
@@ -227,7 +232,7 @@ function startPhysics(velB: V3, why: string) {
   flightStartMs = clock.ms; flightStartDir = v3.norm(P.dir);
   orbit = launch(posB, velB, et, G.meta.gm_effective_m3s2, 2 * Math.PI / (G.meta.period_h * 3600)); layer = 'ballistic'; used.add('phys'); driveSpeed = 0; farHinted = false;
   hud.announce(why);
-  hint.show('飛行中 — 右上のスイッチで地表へ / WASD: 進む / 矢印: 向き', false, 7000);
+  hint.show(isTouch ? '飛行中 — 左スティック:進む / 右ドラッグ:向き / ▲▼:上昇・降下 / 右上スイッチ:地表へ' : '飛行中 — 右上のスイッチで地表へ / WASD: 進む / 矢印: 向き', false, 7000);
 }
 /** return to the surface from ballistic flight / orbit (presentation shortcut; the sub-player point) */
 function returnToSurface() {
@@ -287,7 +292,7 @@ function startSpace() {
   camXf = { q0: camera.quaternion.clone(), t: 0, dur: ASCEND_S };   // 歩行視点から滑らかに向き直る
   orbit = null; layer = 'space'; driveSpeed = 0; used.add('phys'); spFxT = 0;
   hud.announce('宇宙モード');
-  hint.show('宇宙モード — 上空200mまで上昇します。Space:遠ざかる / C:近づく・着地 / WASD・矢印・ドラッグ:球面を周回 / 右上のスイッチ:最寄りの地表へ', false, 9000);
+  hint.show(isTouch ? '宇宙モード — 左スティック:周回 / 右ドラッグ:見回す / ▲▼:上昇・降下 / 右上スイッチ:地表へ' : '宇宙モード — 上空200mまで上昇します。Space:遠ざかる / C:近づく・着地 / WASD・矢印:球面を周回 / ドラッグ:見回す / 右上のスイッチ:最寄りの地表へ', false, 9000);
 }
 function stepSpace(dt: number) {
   if (!sp) { layer = 'walk'; return; }
@@ -295,7 +300,7 @@ function stepSpace(dt: number) {
   if (keys.has('KeyD') || keys.has('ArrowRight')) x += 1; if (keys.has('KeyA') || keys.has('ArrowLeft')) x -= 1;
   if (keys.has('KeyW') || keys.has('ArrowUp')) y += 1; if (keys.has('KeyS') || keys.has('ArrowDown')) y -= 1;
   if (joy.active) { x += joy.x; y += -joy.y; }
-  const hit = sp.step(dt, { x: Math.max(-1, Math.min(1, x)), y: Math.max(-1, Math.min(1, y)), out: keys.has('Space'), inward: keys.has('KeyC') }, groundAt, G.meta.gm_effective_m3s2, EYE);
+  const hit = sp.step(dt, { x: Math.max(-1, Math.min(1, x)), y: Math.max(-1, Math.min(1, y)), out: keys.has('Space') || pad.up, inward: keys.has('KeyC') || pad.down }, groundAt, G.meta.gm_effective_m3s2, EYE);
   P.dir = sp.dir;
   if (sp.fx) { spFxT -= dt; if (spFxT <= 0) { spFxT = 0.12; jetFX(sp.fx); if (sound.on) sound.thrust(); } }
   if (hit) landFromSpace();
@@ -322,7 +327,8 @@ function steerFlight(dt: number) {
 function stepFlight(et: number, dt: number, dtReal = dt) {
   if (!orbit) return; const surf = (b: V3) => groundAt(b);
   { // thrust (E): WASD=前後左右 / Space=上 / C=下。視線方向へ。Δv は実時間 1 秒あたり 0.05 m/s（圧縮に依存しない）
-    const th = 0.05; let tx = 0, ty = 0, tz = 0; if (keys.has('KeyW')) ty += 1; if (keys.has('KeyS')) ty -= 1; if (keys.has('KeyD')) tx += 1; if (keys.has('KeyA')) tx -= 1; if (keys.has('Space')) tz += 1; if (keys.has('KeyC')) tz -= 1;
+    const th = 0.05; let tx = 0, ty = 0, tz = 0; if (keys.has('KeyW')) ty += 1; if (keys.has('KeyS')) ty -= 1; if (keys.has('KeyD')) tx += 1; if (keys.has('KeyA')) tx -= 1; if (keys.has('Space') || pad.up) tz += 1; if (keys.has('KeyC') || pad.down) tz -= 1;
+    if (joy.active) { tx += joy.x; ty += -joy.y; } tx = Math.max(-1, Math.min(1, tx)); ty = Math.max(-1, Math.min(1, ty));
     if (tx || ty || tz) { const b = bodyOf(orbit); const up = v3.norm(b); const fw = v3.norm(v3.sub(P.fwd, v3.mul(up, v3.dot(P.fwd, up)))); const rt = v3.cross(fw, up);
       const fp = v3.add(v3.mul(fw, Math.cos(P.pitch)), v3.mul(up, Math.sin(P.pitch))); const vu = v3.cross(rt, fp);
       const ab = v3.add(v3.add(v3.mul(fp, ty * th), v3.mul(rt, tx * th)), v3.mul(vu, tz * th)); const a = -orbit.omega * (orbit.t - orbit.t0), c = Math.cos(-a), sn = Math.sin(-a); const ai: V3 = [c * ab[0] - sn * ab[1], sn * ab[0] + c * ab[1], ab[2]]; orbit.v = v3.add(orbit.v, v3.mul(ai, dtReal));
@@ -458,7 +464,7 @@ function frame(now: number) {
   requestAnimationFrame(frame); const dtRaw = Math.min(5, (now - prev) / 1000); const dt = Math.min(0.1, dtRaw); prev = now; if (!ready) return;
   // P1-4: 弾道飛行中の無操作時間圧縮（演出E）。入力があれば実時間に戻る。
   const flying = layer === 'ballistic' || layer === 'orbit';
-  const held = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyC', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(k => keys.has(k));
+  const held = pad.up || pad.down || joy.active || ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'KeyC', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].some(k => keys.has(k));
   const idle = flying && !held && performance.now() - lastInput > 2000;
   // 滑らかに ×1 → ×500（約3秒）。操作したら素早く ×1 に戻る（演出E）
   compress = idle ? Math.min(500, Math.max(1, compress) * Math.pow(10, dt)) : Math.max(1, compress * Math.pow(0.004, dt)); if (compress < 1.02) compress = 1;
@@ -482,7 +488,15 @@ function frame(now: number) {
   else if (layer === 'space' && sp) { eyeB = v3.mul(sp.dir, sp.rad); }
   else if (layer === 'mascot') { eyeB = mascotEye(); }
   else { const h = P.stand + EYE - P.dip; eyeB = v3.mul(P.dir, h); }
-  if (layer === 'space' && sp) { camera.position.copy(tr(eyeB!)); camera.up.copy(tr(sp.up)); camera.lookAt(0, 0, 0); }   // 常にリュウグウ中心を見る
+  if (layer !== 'space' && (spLook.yaw || spLook.pitch)) spLook.yaw = spLook.pitch = 0;
+  if (layer === 'space' && sp) {   // 基準はリュウグウ中心を見る向き。ドラッグはそこからの見回しで、球面上の位置は動かさない
+    if (!drag && touchLook < 0 && performance.now() - spLook.t > 2500 && (spLook.yaw || spLook.pitch)) {   // 離して2.5秒後に滑らかに正面へ戻る
+      const k = 1 - Math.exp(-dt / 0.35); spLook.yaw = wrapPi(spLook.yaw); spLook.yaw -= spLook.yaw * k; spLook.pitch -= spLook.pitch * k;
+      if (Math.abs(spLook.yaw) + Math.abs(spLook.pitch) < 1e-3) spLook.yaw = spLook.pitch = 0;
+    }
+    camera.position.copy(tr(eyeB!)); camera.up.copy(tr(sp.up)); camera.lookAt(0, 0, 0);
+    if (spLook.yaw || spLook.pitch) { camera.rotateY(spLook.yaw); camera.rotateX(spLook.pitch); }
+  }
   else lookAt(eyeB!, P.fwd, upV, P.pitch);
   vehicleCamera(dt);
   if (layer === 'mascot') { const q = mascot.posTopo(); if (q && Math.hypot(q[0], q[1], q[2]) > 1.2) { const rS = hm.radius(SITE.lat, SITE.lon); camera.lookAt(tr(v3.mul(geoToBody(SITE.lat, SITE.lon, 1), rS))); } }   // 降下・バウンド中はMASCOTが向かう着陸点を見る
@@ -537,6 +551,8 @@ function frame(now: number) {
   // P1-1: スライダー同期・飛行中は無効化
   slider.sync(clock.ms); slider.setEnabled(layer === 'walk');
   spaceBtn.sync(layer === 'walk' ? 'ground' : inFlight() ? 'space' : null);
+  { const fl = inFlight(); document.body.classList.toggle('flying', fl);
+    if (!fl && (pad.up || pad.down)) { pad.up = pad.down = false; flightPad.querySelectorAll('button.on').forEach(b => b.classList.remove('on')); } }
   if (layer === 'walk' && now - lastTrack > 5000) { lastTrack = now; session.track.push({ t: new Date(clock.ms).toISOString(), lat: gp.lat, lon: gp.lon, layer }); try { localStorage.setItem('ryugu_t', String(clock.ms)); } catch { /* ignore */ } }
     // 磁場ドローン: MASCOTサイト近傍では実MAGデータの磁場強度、それ以外は背景値（E: 音響化）
   const nearMascot = surfDist(gp.lat, gp.lon, SITE.lat, SITE.lon) < 200;
@@ -622,7 +638,7 @@ function hudUpdate(S: { et: number; dir: V3; au: number }, gp: { lat: number; lo
   else if (layer === 'space' && sp) {
     const alt = sp.rad - groundAt(sp.dir); const at = alt >= 1000 ? (alt / 1000).toFixed(2) + 'km' : alt.toFixed(0) + 'm';
     const st = sp.phase === 'ascend' ? '上昇中' : sp.phase === 'return' ? '最寄りの地表へ帰還中' : sp.captured ? '重力に捕まりました — 自動着地' : '自由飛行';
-    l3 = `宇宙モード ${st}  高度 ${at}（地表から） 中心から ${sp.rad.toFixed(0)}m  速度 ${sp.speed.toFixed(1)}m/s${sp.captured ? `  時間圧縮×${TIME_COMPRESS}（演出E）` : ''}`;
+    l3 = mqCompact.matches ? `${st}  高度 ${at}  ${sp.speed.toFixed(1)}m/s${sp.captured ? `  ×${TIME_COMPRESS}` : ''}` : `宇宙モード ${st}  高度 ${at}（地表から） 中心から ${sp.rad.toFixed(0)}m  速度 ${sp.speed.toFixed(1)}m/s${sp.captured ? `  時間圧縮×${TIME_COMPRESS}（演出E）` : ''}`;
   }
   else { const gs = sampleGravity(G, gp.lat, gp.lon); l3 = `${T.gravity} ${(gs.gmag * 1000).toFixed(2)}mm/s²  ${T.escape} ${(gs.esc * 100).toFixed(0)}cm/s${mark('D')}${G === G340 ? '  [3.40h]' : ''}`; }
   if (layer === 'walk' && Math.abs(driveSpeed) > 0.1) l3 += `  車両風走行 ${Math.abs(driveSpeed).toFixed(1)}m/s（演出E）`;
@@ -634,7 +650,7 @@ function hudUpdate(S: { et: number; dir: V3; au: number }, gp: { lat: number; lo
     const eElev = Math.asin(Math.max(-1, Math.min(1, v3.dot(eB.dir, up)))) / DEG;
     const km = eB.au * 149597870.7;
     hud.setHtml(3, `地球 ${arrowChar(relBearing(eB.dir, up, P.fwd))} 仰角${eElev.toFixed(0)}°  ${eB.au.toFixed(2)}AU（${(km / 1e4).toFixed(0)}万km）`);
-  } else if (layer === 'space') hud.set(3, 'Space:遠ざかる　C:近づく・着地　WASD/矢印/ドラッグ:球面を周回　右上のスイッチ:最寄りの地表へ戻る');
+  } else if (layer === 'space') hud.set(3, isTouch ? '左スティック:周回　右ドラッグ:見回す　▲▼:上昇・降下　右上スイッチ:地表へ' : 'Space:遠ざかる　C:近づく・着地　WASD/矢印:球面を周回　ドラッグ:見回す　右上のスイッチ:最寄りの地表へ戻る');
   else hud.set(3, '');
 }
 
@@ -895,9 +911,9 @@ addEventListener('keydown', e => {
 addEventListener('keyup', e => keys.delete(e.code)); addEventListener('blur', () => keys.clear());
 let drag = false, lx = 0, ly = 0;
 canvas.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; activity(); });
-addEventListener('mouseup', () => drag = false);
+addEventListener('mouseup', () => { drag = false; spLook.t = performance.now(); });
 addEventListener('mousemove', e => { if (!drag) return; look(e.clientX - lx, e.clientY - ly); lx = e.clientX; ly = e.clientY; });
-function look(dx: number, dy: number) { if (layer === 'space') { sp?.drag(dx, dy, groundAt); return; } const up = v3.norm(P.dir); const a = -dx * 0.004; const f = v3.norm(v3.sub(P.fwd, v3.mul(up, v3.dot(P.fwd, up)))); const r = v3.cross(up, f); P.fwd = v3.norm(v3.add(v3.mul(f, Math.cos(a)), v3.mul(r, Math.sin(a)))); P.pitch = Math.max(-1.4, Math.min(1.4, P.pitch - dy * 0.004)); }
+function look(dx: number, dy: number) { if (layer === 'space') { spLook.yaw = wrapPi(spLook.yaw - dx * 0.004); spLook.pitch = Math.max(-1.5, Math.min(1.5, spLook.pitch - dy * 0.004)); spLook.t = performance.now(); return; } const up = v3.norm(P.dir); const a = -dx * 0.004; const f = v3.norm(v3.sub(P.fwd, v3.mul(up, v3.dot(P.fwd, up)))); const r = v3.cross(up, f); P.fwd = v3.norm(v3.add(v3.mul(f, Math.cos(a)), v3.mul(r, Math.sin(a)))); P.pitch = Math.max(-1.4, Math.min(1.4, P.pitch - dy * 0.004)); }
 // ホイール: 時間移動は廃止（P1-1）。MASCOT スクラブと TD1 リプレイのみ残す。
 canvas.addEventListener('wheel', e => { e.preventDefault(); activity();
   if (layer === 'mascot') { return; }   // 時間は再生パネルで操作（ホイールでは動かさない）
@@ -916,7 +932,7 @@ function joyEnd() { joyTouch = -1; joy.active = false; joy.x = joy.y = 0; knob.s
 canvas.addEventListener('touchstart', e => { e.preventDefault(); activity();
   for (const tt of Array.from(e.changedTouches)) {
     if (tt.clientX > innerWidth / 2) { if (touchLook < 0) { touchLook = tt.identifier; tlx = tt.clientX; tly = tt.clientY; } }
-    else if (joyTouch < 0 && layer === 'walk') {
+    else if (joyTouch < 0 && (layer === 'walk' || inFlight())) {
       joyTouch = tt.identifier; jcx = Math.max(60, Math.min(innerWidth - 60, tt.clientX)); jcy = Math.max(60, Math.min(innerHeight - 60, tt.clientY)); joy.active = true; joy.x = joy.y = 0;   // 枠は画面からはみ出さない位置に
       stick.style.left = (jcx - 55) + 'px'; stick.style.top = (jcy - 55) + 'px'; stick.style.bottom = 'auto'; stick.classList.add('on');
     }
@@ -924,7 +940,7 @@ canvas.addEventListener('touchstart', e => { e.preventDefault(); activity();
 canvas.addEventListener('touchmove', e => { e.preventDefault(); for (const tt of Array.from(e.changedTouches)) {
   if (tt.identifier === touchLook) { look(tt.clientX - tlx, tt.clientY - tly); tlx = tt.clientX; tly = tt.clientY; }
   else if (tt.identifier === joyTouch) joyAt(tt.clientX, tt.clientY); } }, { passive: false });
-const touchDone = (e: TouchEvent) => { for (const tt of Array.from(e.changedTouches)) { if (tt.identifier === touchLook) touchLook = -1; if (tt.identifier === joyTouch) joyEnd(); } };
+const touchDone = (e: TouchEvent) => { for (const tt of Array.from(e.changedTouches)) { if (tt.identifier === touchLook) { touchLook = -1; spLook.t = performance.now(); } if (tt.identifier === joyTouch) joyEnd(); } };
 canvas.addEventListener('touchend', touchDone); canvas.addEventListener('touchcancel', touchDone);
 canvas.addEventListener('click', e => { if ((e as any).pointerType === 'touch' || matchMedia('(pointer:coarse)').matches) { if (nearHits.length || card.isOpen || viewer.isOpen) interact(); } });
 // 地面のタップ/クリックで地名を調べる（視点操作のドラッグと区別: 5〜10px未満の移動・短時間のみ）
@@ -937,6 +953,21 @@ canvas.addEventListener('touchend', e => { for (const tt of Array.from(e.changed
 canvas.addEventListener('touchcancel', e => { for (const tt of Array.from(e.changedTouches)) tapStart.delete(tt.identifier); });
 // 宇宙への脱出（ジャンプ）と帰還は、このボタンだけで行う（キー操作・離陸モードは廃止）
 const spaceBtn = new SpaceButton($('spacebtn') as HTMLButtonElement, () => { activity(); if (layer === 'walk') startSpace(); else if (layer === 'space') { if (sp) { sp.beginReturn(groundAt, EYE); hint.show('最寄りの地表へ戻ります…', false, 2500); } } else returnToSurface(); });
+// 上昇/降下ボタン（タッチ端末の宇宙モード・弾道飛行中のみCSSで表示）。押している間だけ有効
+const flightPad = (() => {
+  const d = document.createElement('div'); d.id = 'flightpad'; d.setAttribute('role', 'group'); d.setAttribute('aria-label', '上昇・降下');
+  d.innerHTML = '<button type="button" data-k="up" aria-label="上昇（遠ざかる）"><span>▲</span><small>上昇</small></button><button type="button" data-k="down" aria-label="降下（近づく・着地）"><span>▼</span><small>降下</small></button>';
+  d.querySelectorAll('button').forEach(b => {
+    const k = (b as HTMLElement).dataset.k as 'up' | 'down';
+    const set = (v: boolean) => { pad[k] = v; b.classList.toggle('on', v); if (v) activity(); };
+    b.addEventListener('pointerdown', e => { e.preventDefault(); try { (b as HTMLElement).setPointerCapture((e as PointerEvent).pointerId); } catch { /* ignore */ } set(true); });
+    for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => set(false));
+    b.addEventListener('contextmenu', e => e.preventDefault());
+  });
+  document.body.appendChild(d); return d;
+})();
+// モバイルのHUDは2行に省略表示。タップで全文を開閉（CSS: #hud.open）
+$('hud').addEventListener('click', () => { $('hud').classList.toggle('open'); activity(); });
 $('viewer').addEventListener('click', e => { if (e.target === $('viewer')) viewer.close(); });
 $('b-sound').addEventListener('click', toggleSound); $('b-rec').addEventListener('click', recordNow); $('b-lib').addEventListener('click', openLibrary);
 $('b-ev').addEventListener('click', () => { activity(); eventUi.openList(); });
