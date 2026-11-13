@@ -908,7 +908,7 @@ addEventListener('keydown', e => {
   if (e.code === 'KeyN') toggleAnnot(); if (e.code === 'KeyL') openPlaces();   // 地名ガイド（N: 表示切替 / L: 地名・出来事リスト）
   if (e.shiftKey && e.code === 'KeyW') used.add('dash');
 });
-addEventListener('keyup', e => keys.delete(e.code)); addEventListener('blur', () => keys.clear());
+addEventListener('keyup', e => keys.delete(e.code));
 let drag = false, lx = 0, ly = 0;
 canvas.addEventListener('mousedown', e => { drag = true; lx = e.clientX; ly = e.clientY; activity(); });
 addEventListener('mouseup', () => { drag = false; spLook.t = performance.now(); });
@@ -959,13 +959,21 @@ const flightPad = (() => {
   d.innerHTML = '<button type="button" data-k="up" aria-label="上昇（遠ざかる）"><span>▲</span><small>上昇</small></button><button type="button" data-k="down" aria-label="降下（近づく・着地）"><span>▼</span><small>降下</small></button>';
   d.querySelectorAll('button').forEach(b => {
     const k = (b as HTMLElement).dataset.k as 'up' | 'down';
-    const set = (v: boolean) => { pad[k] = v; b.classList.toggle('on', v); if (v) activity(); };
+    const set = (v: boolean) => { pad[k] = v; b.classList.toggle('on', v); b.setAttribute('aria-pressed', String(v)); if (v) activity(); };
     b.addEventListener('pointerdown', e => { e.preventDefault(); try { (b as HTMLElement).setPointerCapture((e as PointerEvent).pointerId); } catch { /* ignore */ } set(true); });
     for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => set(false));
     b.addEventListener('contextmenu', e => e.preventDefault());
   });
   document.body.appendChild(d); return d;
 })();
+// アプリ切替・画面ロック・着信などで touchend/pointerup が届かなくても推力を確実に解除する
+const releaseTouchControls = () => {
+  pad.up = pad.down = false; flightPad.querySelectorAll('button.on').forEach(b => { b.classList.remove('on'); b.setAttribute('aria-pressed', 'false'); });
+  joyEnd(); touchLook = -1; drag = false;
+};
+addEventListener('blur', () => { keys.clear(); releaseTouchControls(); });
+addEventListener('pagehide', releaseTouchControls);
+document.addEventListener('visibilitychange', () => { if (document.hidden) releaseTouchControls(); });
 // モバイルのHUDは2行に省略表示。タップで全文を開閉（CSS: #hud.open）
 $('hud').addEventListener('click', () => { $('hud').classList.toggle('open'); activity(); });
 $('viewer').addEventListener('click', e => { if (e.target === $('viewer')) viewer.close(); });

@@ -46,6 +46,9 @@ body button{touch-action:manipulation}
   body #foot{bottom:calc(6px + var(--sab))}
   body #mrp{bottom:calc(70px + var(--sab))}
 
+  /* 飛行中は左スティックを薄く常時表示し、初見でも操作場所を見失わないようにする */
+  body.flying #stick{display:block;opacity:.28}
+  body.flying #stick.on{opacity:1}
   body.flying #flightpad{display:flex}
   body #flightpad{position:fixed;right:var(--edge-r);bottom:calc(var(--dock) + 12px);flex-direction:column;gap:10px;z-index:7;touch-action:none}
   body #flightpad button{display:flex;flex-direction:column;align-items:center;justify-content:center;width:64px;height:64px;padding:0;
