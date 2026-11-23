@@ -65,11 +65,11 @@ for i in range(96):
 json.dump(dict(local_time_step_min=15, lat_deg=lats.tolist(), ti_tiu=TIs.tolist(), subsolar_lat_deg=decs.tolist(),
     index='((lat_i*len(ti)+ti_j)*len(dec)+dec_k)', curves_K=np.round(rec, 1).tolist(),
     assumptions=dict(model='1D heat conduction, rho*c=1e6 J/m3/K constant, k=Gamma^2/(rho c)', bond_albedo=A, emissivity=EPS, heliocentric_AU=R_AU,
-                     slopes='not modelled', roughness='not modelled', shadowing='none'), certainty='D'), open(os.path.join(OUT, 'temperature_curves.json'), 'w'), separators=(',', ':'))
+                     slopes='not modelled', roughness='not modelled', shadowing='none'), certainty='D',
+    mara_comparison=dict(site='MASCOT (~22S), BP8-12 band', mara_K=[184.2,307.8], model_K_lat20_ti300=[209,327], note='Model is ~+19..25 K warmer than MARA brightness temperatures; no tuning applied. Shown as model estimate (D).')), open(os.path.join(OUT, 'temperature_curves.json'), 'w'), separators=(',', ':'))
 # sanity vs MARA at MASCOT site (lat -22, TI ~300): daytime max
 mara = json.load(open(os.path.join(OUT, 'mara.json')))
 vals = [r['t'][3] for r in mara['rows'] if r['t'][3] is not None and r['status'] != 'preRelease']
 i = (np.argmin(abs(lats + 20)) * len(TIs) + np.argmin(abs(TIs - 300))) * len(decs) + 1
 print('MARA BP8-12 range K:', min(vals) if vals else None, max(vals) if vals else None, '| model lat-20 TI300: min %.0f max %.0f' % (rec[i].min(), rec[i].max()))
 print('curves', N)
-# NOTE: mara_comparison block is appended to the JSON by the run_all.sh post-step (see README).

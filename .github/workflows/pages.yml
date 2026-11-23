@@ -21,6 +21,10 @@ jobs:
         with: { node-version: 22 }
       - run: bash tools/precompute/run_all.sh
       - run: cd site && npm install && npm run build
+      - name: Site logic tests (features, thermal)
+        run: cd site && npm run test:features && npm run test:thermal
+      - name: Size gate — Cloudflare Pages 25 MiB/file limit
+        run: python3 09_manifests/tools/check_large_files.py --root site/dist
       - uses: actions/upload-pages-artifact@v3
         with: { path: site/dist }
   deploy:

@@ -8,10 +8,5 @@ python3 mascot_convert.py    # mascam png + manifest, mara/mag json, mascot_posi
 python3 onc_assets.py        # l2c jpg, image_geometry.json, gallery_manifest.json
 python3 spice_sc.py          # sc_table.bin
 python3 temperature_curves.py
-python3 - <<'PY'
-import json
-p='../../site/public/data/temperature_curves.json'; d=json.load(open(p))
-d['mara_comparison']=dict(site='MASCOT (~22S), BP8-12 band', mara_K=[184.2,307.8], model_K_lat20_ti300=[209,327], note='Model is ~+19..25 K warmer than MARA brightness temperatures; no tuning applied. Shown as model estimate (D).')
-json.dump(d,open(p,'w'),separators=(',',':'))
-PY
 bash ../../scripts/sync_assets.sh
+python3 validate_outputs.py    # 生成アセットの存在・形状を検証（欠けていれば失敗）
