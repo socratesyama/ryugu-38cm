@@ -23,6 +23,7 @@ REQUIRED_FILES = [
     "data/features.json",
     "data/temperature_curves.json",
     "data/gallery_manifest.json",
+    "data/gallery_picks.json",
     "data/mara.json",
     "data/sc_table.bin",
     "assets/generated/ryugu_lod3_5k.obj",
