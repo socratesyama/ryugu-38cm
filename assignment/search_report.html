@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>はやぶさ2 年表の探索レポート</title>
+<style>
+  :root { --ink:#1f2933; --muted:#616e7c; --line:#d9e2ec; --bg:#f7fafc; }
+  @media (prefers-color-scheme: dark) {
+    :root { --ink:#e4e7eb; --muted:#9aa5b1; --line:#3e4c59; --bg:#1f2933; }
+  }
+  body { margin:0; padding:16px; font-family:-apple-system,"Hiragino Sans","Yu Gothic",sans-serif;
+          color:var(--ink); background:var(--bg); line-height:1.7; }
+  main { max-width:960px; margin:0 auto; }
+  header { border-bottom:3px solid #2e7d32; padding-bottom:12px; margin-bottom:20px; }
+  h1 { margin:0 0 4px; font-size:1.6rem; }
+  .who { font-size:1.15rem; font-weight:700; color:#2e7d32; }
+  .muted { color:var(--muted); font-size:.9rem; }
+  h2 { margin-top:32px; border-left:6px solid #2e7d32; padding-left:10px; }
+  .card { border-radius:10px; padding:14px 18px; margin:14px 0; box-shadow:0 1px 3px rgba(0,0,0,.12); }
+  .card-head { display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .card h3 { margin:0; font-size:1.1rem; }
+  .badge { background:rgba(0,0,0,.15); border-radius:999px; padding:2px 10px; font-weight:700; font-size:.85rem; }
+  .stat { font-weight:700; }
+  .path { font-family:ui-monospace,Menlo,monospace; word-break:break-all; background:rgba(0,0,0,.08); padding:6px 8px; border-radius:6px; }
+  .inner ul, .inner ol { padding-left:20px; }
+  table { width:100%; border-collapse:collapse; font-size:.9rem; }
+  th, td { border:1px solid var(--line); padding:6px 8px; text-align:left; vertical-align:top; }
+  th { background:rgba(46,125,50,.12); }
+  .scroll { overflow-x:auto; }
+  footer { margin-top:36px; color:var(--muted); font-size:.85rem; }
+</style>
+</head>
+<body>
+<main>
+<header>
+  <h1>はやぶさ2 年表の探索レポート</h1>
+  <p class="who">1年1組 37番 山本和輝</p>
+  <p class="muted">テーマ：はやぶさ2の年表（36 件）の掲載順と日付の矛盾を、探索の深さを変えて調べる。
+  探索レベルが深いほど、濃い色で示しています。作成: 2026-11-25 21:21</p>
+</header>
+
+<h2>1. リストの定義</h2>
+<p>年表の全 36 件を、掲載順のリスト <code>EVENTS</code> として定義しています。
+各要素は「章・日付・出来事」です。</p>
+<div class="scroll"><table><thead><tr><th>番号</th><th>章</th><th>日付</th><th>出来事</th></tr></thead><tbody><tr><td>0</td><td>打上げ・巡航</td><td>2014-12-03</td><td>H-IIAロケット26号機により種子島宇宙センターから打ち上げ成功</td></tr><tr><td>1</td><td>打上げ・巡航</td><td>2015-12-03</td><td>地球スイングバイ実施</td></tr><tr><td>2</td><td>打上げ・巡航</td><td>2018-03-01</td><td>遠距離からリュウグウの撮影に成功(初撮影)</td></tr><tr><td>3</td><td>打上げ・巡航</td><td>2018-06-04</td><td>第3期イオンエンジン連続運転を終了、到着最終段階へ</td></tr><tr><td>4</td><td>リュウグウ到着・初期観測</td><td>2018-06-27</td><td>小惑星リュウグウに到着(ランデブー)</td></tr><tr><td>5</td><td>リュウグウ到着・初期観測</td><td>2018-07-11</td><td>リュウグウの形状モデル初期バージョンが完成(SfM/SPCの2手法)</td></tr><tr><td>6</td><td>リュウグウ到着・初期観測</td><td>2018-08-29</td><td>着陸候補地点(L08等)を決定</td></tr><tr><td>7</td><td>着陸機・ローバ展開</td><td>2018-09-21</td><td>小型ローバMINERVA-II1(Rover-1A/1B)分離、リュウグウ着陸に成功</td></tr><tr><td>8</td><td>着陸機・ローバ展開</td><td>2018-10-03</td><td>小型着陸機MASCOT(DLR/CNES)分離、着陸成功</td></tr><tr><td>9</td><td>着陸機・ローバ展開</td><td>2018-10-25</td><td>ターゲットマーカ(TM-E)をリュウグウ表面に投下</td></tr><tr><td>10</td><td>着陸機・ローバ展開</td><td>2018-12-19</td><td>リュウグウ表面の地名13か所がIAUで承認(テーマ:子ども向けの物語)</td></tr><tr><td>11</td><td>サンプル採取</td><td>2019-02-22</td><td>第1回タッチダウン(TD1)成功 — 表面サンプル採取(1回目)</td></tr><tr><td>12</td><td>サンプル採取</td><td>2019-04-05</td><td>衝突装置(SCI)による人工クレーター生成実験を実施、成功</td></tr><tr><td>13</td><td>サンプル採取</td><td>2019-07-11</td><td>第2回タッチダウン(TD2)成功 — 人工クレーター近傍で地下物質を採取</td></tr><tr><td>14</td><td>サンプル採取</td><td>2019-10-03</td><td>小型ローバMINERVA-II2を分離(00:57 JST、高度約1km)</td></tr><tr><td>15</td><td>サンプル採取</td><td>2019-11-13</td><td>リュウグウを出発(地球帰還へ)</td></tr><tr><td>16</td><td>地球帰還・試料回収</td><td>2020-12-05</td><td>帰還カプセルを地球へ向けて分離</td></tr><tr><td>17</td><td>地球帰還・試料回収</td><td>2020-12-06</td><td>帰還カプセルが南オーストラリア・ウーメラ砂漠に着地、回収成功</td></tr><tr><td>18</td><td>地球帰還・試料回収</td><td>2020-12-14</td><td>クリーンチャンバ内でサンプルコンテナの内蓋を開封</td></tr><tr><td>19</td><td>地球帰還・試料回収</td><td>2020-12-15</td><td>サンプル採取を確認(TD1サンプル・ガス分析結果を公表)</td></tr><tr><td>20</td><td>地球帰還・試料回収</td><td>2020-12-18</td><td>リュウグウサンプルの総量は約5.4g(5.424±0.217g)と発表</td></tr><tr><td>21</td><td>初期分析・研究成果(主なもの)</td><td>2021-12-21</td><td>初期記載の結果: リュウグウは水・有機物に富む始原的な小惑星と判明</td></tr><tr><td>22</td><td>初期分析・研究成果(主なもの)</td><td>2022-02-11</td><td>「リュウグウの花吹雪」— CAM-Hが捉えた表層粒子の振る舞いを解明</td></tr><tr><td>23</td><td>初期分析・研究成果(主なもの)</td><td>2022-02</td><td>初期分析(化学分析チーム): 10種以上のアミノ酸を含む多様な可溶性有機物を検出</td></tr><tr><td>24</td><td>初期分析・研究成果(主なもの)</td><td>2022-06-10</td><td>初期分析: リュウグウの物質はCIコンドライト(イヴナ型隕石)に最も類似</td></tr><tr><td>25</td><td>初期分析・研究成果(主なもの)</td><td>2022-08</td><td>リュウグウは太陽系外縁部で生まれた天体由来と判明(多機関連携分析)</td></tr><tr><td>26</td><td>初期分析・研究成果(主なもの)</td><td>2022-10-21</td><td>世界初の小惑星からの「ガスサンプル」分析結果を公表(希ガス・窒素同位体)</td></tr><tr><td>27</td><td>初期分析・研究成果(主なもの)</td><td>2023-02-24</td><td>初期分析: 可溶性有機分子と黒い固体有機物(マクロ有機物)の詳細を公表</td></tr><tr><td>28</td><td>初期分析・研究成果(主なもの)</td><td>2023-03</td><td>リュウグウ試料からウラシル(核酸塩基)とナイアシン(ビタミンB3)を検出</td></tr><tr><td>29</td><td>初期分析・研究成果(主なもの)</td><td>2024-09-06</td><td>マグネシウム同位体分析により始源天体における鉱物・水の変遷を解明</td></tr><tr><td>30</td><td>初期分析・研究成果(主なもの)</td><td>2024-11-22</td><td>リュウグウの砂つぶから塩の結晶を発見 — 海洋天体とのつながりを示す手がかり</td></tr><tr><td>31</td><td>拡張ミッション(はやぶさ2♯)</td><td>2020-12-07以降</td><td>本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)</td></tr><tr><td>32</td><td>拡張ミッション(はやぶさ2♯)</td><td>2023-08</td><td>「はやぶさ2♯」の旅路から惑星間塵の分布を検出(約半世紀ぶりの成果)</td></tr><tr><td>33</td><td>拡張ミッション(はやぶさ2♯)</td><td>2026-07-05</td><td>小惑星トリフネ(2001 CC21)のフライバイ探査を実施</td></tr><tr><td>34</td><td>拡張ミッション(はやぶさ2♯)</td><td>2027〜2028年</td><td>地球スイングバイ2回(予定)</td></tr><tr><td>35</td><td>拡張ミッション(はやぶさ2♯)</td><td>2031年</td><td>最終目標: 高速自転小惑星1998 KY26へ到着(ランデブー)予定</td></tr></tbody></table></div>
+
+<h2>2. 探索結果（探索レベルによる評価のグラデーション）</h2>
+<p>探索レベルが上がるほど、調べる範囲が広く、色が濃くなります。</p>
+<div class="scroll"><table>
+<thead><tr><th>レベル</th><th>探索方法</th><th>検出数</th><th>比較回数</th><th>訪問回数</th></tr></thead>
+<tbody><tr style='background:#e8f5e9;color:#1b5e20'><td>Lv1</td><td>隣接比較（線形探索）</td><td>1</td><td>35</td><td>36</td></tr><tr style='background:#a5d6a7;color:#1b5e20'><td>Lv2</td><td>全対比較（総当たり）</td><td>15</td><td>630</td><td>36</td></tr><tr style='background:#66bb6a;color:#ffffff'><td>Lv3</td><td>深さ制限DFS（閉路検出）</td><td>14</td><td>—</td><td>88679</td></tr><tr style='background:#1b5e20;color:#ffffff'><td>Lv4</td><td>完全DFS（閉路検出・経路復元）</td><td>1</td><td>—</td><td>36</td></tr></tbody></table></div>
+
+<section class="card" style="background:#e8f5e9;color:#1b5e20">
+  <div class="card-head">
+    <span class="badge">Lv1 ・ 基礎</span>
+    <h3>隣接比較（線形探索）</h3>
+  </div>
+  <p>掲載順に隣り合う2件だけを比べる。最も単純で、比較回数は n-1 回。</p>
+  <p class="stat">検出 1 件 ／ 比較回数 35 回</p>
+  <div class="inner"><ul><li>[30] 2024-11-22　リュウグウの砂つぶから塩の結晶を発見 — 海洋天体とのつながりを示す手がかり<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li></ul></div>
+</section>
+<section class="card" style="background:#a5d6a7;color:#1b5e20">
+  <div class="card-head">
+    <span class="badge">Lv2 ・ 標準</span>
+    <h3>全対比較（総当たり）</h3>
+  </div>
+  <p>すべての2件の組み合わせを比べる。比較回数は n(n-1)/2 回。</p>
+  <p class="stat">検出 15 件 ／ 比較回数 630 回</p>
+  <div class="inner"><ul><li>[18] 2020-12-14　クリーンチャンバ内でサンプルコンテナの内蓋を開封<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[19] 2020-12-15　サンプル採取を確認(TD1サンプル・ガス分析結果を公表)<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[20] 2020-12-18　リュウグウサンプルの総量は約5.4g(5.424±0.217g)と発表<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[21] 2021-12-21　初期記載の結果: リュウグウは水・有機物に富む始原的な小惑星と判明<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[22] 2022-02-11　「リュウグウの花吹雪」— CAM-Hが捉えた表層粒子の振る舞いを解明<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[23] 2022-02　初期分析(化学分析チーム): 10種以上のアミノ酸を含む多様な可溶性有機物を検出<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[24] 2022-06-10　初期分析: リュウグウの物質はCIコンドライト(イヴナ型隕石)に最も類似<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[25] 2022-08　リュウグウは太陽系外縁部で生まれた天体由来と判明(多機関連携分析)<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[26] 2022-10-21　世界初の小惑星からの「ガスサンプル」分析結果を公表(希ガス・窒素同位体)<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li><li>[27] 2023-02-24　初期分析: 可溶性有機分子と黒い固体有機物(マクロ有機物)の詳細を公表<br>　↳ 次の 「[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)」 より後の日付</li></ul><p class='muted'>ほか 5 件（省略）</p></div>
+</section>
+<section class="card" style="background:#66bb6a;color:#ffffff">
+  <div class="card-head">
+    <span class="badge">Lv3 ・ 応用</span>
+    <h3>深さ制限DFS（閉路検出）</h3>
+  </div>
+  <p>グラフ上を深さ 3 までの深さ優先探索（DFS）で辿り、短い閉路を探す。</p>
+  <p class="stat">検出 14 件 ／ 訪問した節点 88679 回</p>
+  <div class="inner"><p>閉路を検出しました（2 本の辺）。</p><p class='path'>[30] → [31] → [30]</p><ol><li>[30] 2024-11-22　リュウグウの砂つぶから塩の結晶を発見 — 海洋天体とのつながりを示す手がかり</li><li>[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)</li></ol><p class='muted'>深さ 3 以内の閉路は 14 種類。</p></div>
+</section>
+<section class="card" style="background:#1b5e20;color:#ffffff">
+  <div class="card-head">
+    <span class="badge">Lv4 ・ 発展</span>
+    <h3>完全DFS（閉路検出・経路復元）</h3>
+  </div>
+  <p>深さの制限なしにDFSを行い、閉路の有無と経路を求める。色の訪問状態（白・灰・黒）で後退辺を判定。</p>
+  <p class="stat">検出 1 件 ／ 訪問した節点 36 回</p>
+  <div class="inner"><p>閉路を検出しました（4 本の辺）。</p><p class='path'>[29] → [30] → [31] → [32] → [29]</p><ol><li>[29] 2024-09-06　マグネシウム同位体分析により始源天体における鉱物・水の変遷を解明</li><li>[30] 2024-11-22　リュウグウの砂つぶから塩の結晶を発見 — 海洋天体とのつながりを示す手がかり</li><li>[31] 2020-12-07以降　本体は拡張ミッションへ移行(残存イオンエンジン燃料を活用)</li><li>[32] 2023-08　「はやぶさ2♯」の旅路から惑星間塵の分布を検出(約半世紀ぶりの成果)</li></ol></div>
+</section>
+
+<h2>3. 考察</h2>
+<p>隣接比較（Lv1）と全対比較（Lv2）は、日付の逆転を「2件の組」で検出します。
+グラフの探索（Lv3・Lv4）は、掲載順と日付の辺をたどって「元に戻る経路（閉路）」を探します。
+閉路は、ある出来事が別の出来事より前にも後にもなる、という矛盾を意味します。</p>
+<p>Lv3 は深さ 3 までしか探さないため、長い閉路は見つけられません。
+Lv4 は深さの制限がないため、閉路の有無と経路を完全に求められます。
+このように、探索の深さによって見つけられる矛盾の範囲が変わることを示しています。</p>
+
+<footer>1年1組 37番 山本和輝 ／ 入力: 06_timeline_text/timeline.json ／ 実行: python3 assignment/search_report.py</footer>
+</main>
+</body>
+</html>

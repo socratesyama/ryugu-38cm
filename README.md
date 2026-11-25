@@ -1,54 +1,91 @@
-# はやぶさ2・リュウグウ ウェブサイト再構成用データセット
+# RYUGU 38cm/s — リュウグウを歩いて学ぶ、はやぶさ2の教育サイト
 
-「どんな人でもわかりやすく楽しく、はやぶさ2に触れられる」ウェブページの再構成に必要な主要公開データセット。全期間・全観測・全カーネルを網羅する完全なミッションアーカイブではない。収集日: 2026-11-03。
+**1年1組 37番 山本和輝**
 
-**重要**: 本データセットは非公式の制作素材であり、JAXA・ISASの公式提供物ではありません。サイト公開時は「非公式」であることと、各データの出典・クレジット(08_references/credits_and_licenses.md)を必ず明記してください。
+## どんなサイトか
 
-## ディレクトリ構成
+小惑星リュウグウの3Dモデルの上を、**秒速38cm（人が歩く速さ）**で歩いて探索できるブラウザ向けの教育サイトです。
+はやぶさ2が着陸・観測した場所（TD1、SCI 人工クレーター、MASCOT など）を歩いて回りながら、
+地形の名前、出来事、探査機の動きを学べます。
 
-| フォルダ | 内容 | サイトでの使い方 |
+- **見どころ**: 3D表示（three.js）、視界に入った地形へ地名を重ねる「地名ガイド」、MASCOT の再生、ギャラリー（ONC 画像783枚）、年表、用語集、出典ページ
+- **仕組み**: 太陽・自転・重力・探査機の位置などは事前計算（Python）し、サイトは計算結果を読み込んで表示（TypeScript）
+- **注意**: JAXA・ISAS 非公式の制作物です。データの出典は `08_references/credits_and_licenses.md` を参照してください。
+
+## どこに「探索」を使ったか
+
+このリポジトリでは、年表やギャラリーを対象に、探索アルゴリズムを使っています。
+
+| 場所 | 使った探索 | 内容 | 出力 |
+|---|---|---|---|
+| **`assignment/search_report.py`**（課題プログラム） | 隣接比較・全対比較・深さ制限DFS・完全DFS の4レベル | 年表36件のリストを定義し、掲載順と日付の矛盾を、探索の深さを変えて調べる | `assignment/search_report.html`（レベルごとに色の濃さで評価を表示） |
+| **`tools/precompute/timeline_check.py`** | DFS（閉路検出） | 掲載順の辺と日付の辺からグラフを作り、閉路（矛盾）を経路つきで報告。ビルド時に実行（警告のみ） | 標準出力 |
+| **`tools/precompute/gallery_picks.py`** | 貪欲法（被覆問題） | 有効率0.5以上の画像から、緯度経度の格子を最も多く覆うものを順に12枚選ぶ | `site/public/data/gallery_picks.json`（決定的に同じ結果） |
+
+### 探索の具体例（年表の矛盾）
+
+年表の「2023-08」の出来事が、掲載順では「2024-09-06」より後に並んでいます。
+DFS で閉路を探すと、次の経路が見つかります。
+
+```
+[29] 2024-09-06 → [30] 2024-11-22 → [31] 2020-12-07以降 → [32] 2023-08 → [29]
+```
+
+探索の深さを変えると、見つかる矛盾の数が変わります（課題プログラムの結果）。
+
+| レベル | 方法 | 検出数 |
 |---|---|---|
-| 01_shape_models/ | リュウグウ3D形状モデル。DSK(SPICE)・Web用OBJ・テクスチャ付きFBX・重力係数(3.40h・7.63h版) | 3D表示(Three.js等)。サイト運用メッシュは49k面、200k面モデルは別データとして区別 |
-| 02_onc_images/ | ONC画像。科学データ(L2C tgz 9日分+幾何情報l2dbpc_latlon 4日分)・公式ギャラリー厳選画像783枚・インデックス | ヒーロー画像、ギャラリー、タッチダウン演出 |
-| 03_spice/ | SPICEカーネル一式(軌道・時刻系・座標系) | 軌道アニメーション、観測幾何の再現 |
-| 04_science_data/ | 全球ベースマップ・アルベド地図・熱慣性地図(JPG/GeoTIFF)・リュウグウ試料顕微鏡画像・FTIR・MicrOmegaデータ | 3Dテクスチャ、データレイヤー切替表示、試料紹介 |
-| 05_mascot/ | MASCOT着陸機MASCAMの全較正画像・MARA/MAG較正データ | 「リュウグウ着陸体験」コンテンツ、着陸機の科学データ |
-| 06_timeline_text/ | ミッション年表(JSON/MD)・探査機概要・リュウグウファクトシート・IAU地名一覧・着陸地点座標・観測運用サマリー | 年表UI、解説ページ本文、地図上の出来事表示 |
-| 07_glossary_faq/ | 用語集・FAQ | 用語ツールチップ、FAQページ |
-| 08_references/ | 論文リスト・公式リンク集・クレジット・ライセンス | 出典ページ、参考リンク |
-| 09_manifests/ | データマニフェスト(収集記録・未収録大容量データの入手先)・追加データ一覧(拡張計画)・変換ツール | データ管理、拡張時のガイド |
-| 10_pointclouds/ | リュウグウ高精細点群(SfM 3M=157万点+PLY、LIDAR実測39.6万点+PLY) | 点群表示、比較(形状モデル vs 実測) |
-| 11_spacecraft_model/ | はやぶさ2本体の3Dモデル(GLB/OBJ/STL、136パーツ・88,288面・PBRテクスチャ付き、MITライセンス)+公式資料 | 探査機本体の3D表示、3Dプリント |
-| 12_site_data/ | WASD探索型・教育サイト構築用データ一式。地点(POI)マスタ・出来事↔画像↔試料リンク・試料メタデータ・画像↔座標対応・クイズ/ミッション/誤解訂正・出典レジストリ・変換スクリプト・生成済みタイル/標高・法線マップ/LOD・当たり判定メッシュ | リュウグウを歩ける教育サイトの実装 |
+| Lv1 | 隣接比較 | 1 |
+| Lv2 | 全対比較 | 15 |
+| Lv3 | 深さ3までのDFS | 14（長さ3以下の閉路） |
+| Lv4 | 完全DFS | 閉路1（長さ4） |
 
-## すぐ始めるには(MVP)
+## 実行方法
 
-1. **3Dリュウグウ**: `01_shape_models/web_ready_planetarium/SHAPE_SFM_200k_v20180804_Y.obj.zip` を展開し、テクスチャ `04_science_data/map_products/01_ONC_v-band_Basemap1/hyb2_onc_Global_01_l3dm_v06.jpg` を貼って Three.js で表示
-   - **高精細点群なら**: `10_pointclouds/sfm_3m/ryugu_pointcloud_sfm3m_316k_color_web.ply` を Three.js PLYLoader で読み込むだけ
-   - **探査機本体なら**: `11_spacecraft_model/hayabusa2_spacecraft.glb` を GLTFLoader で読み込むだけ
-   - さらに高品質な最終版は `01_shape_models/ryugu_shape_spc_200k_v20200323_web.obj`(本データセットでDSKから変換済み)
-2. **年表**: `06_timeline_text/timeline.json` を読み込んでインタラクティブ年表に
-3. **ギャラリー**: `02_onc_images/official_gallery_jaxa/` の783枚を日付順に表示(インデックス: `02_onc_images/gallery_index.md`)
-4. **地図レイヤー**: `04_science_data/map_products/` のJPGを地図/テクスチャ切替表示
-5. **解説テキスト**: `06_timeline_text/`・`07_glossary_faq/` をそのままページ本文に
+```bash
+# 課題: 探索レポート（HTML）を作る。標準ライブラリのみ
+python3 assignment/search_report.py
+# → assignment/search_report.html をブラウザで開く
 
-## 主な収録データのバージョン(引用時に記録すること)
+# サイト用の事前計算（numpy + Pillow）と検証
+bash tools/precompute/run_all.sh
 
-- 形状モデル: SPC v20200323(最終版)・SfM v20180804/v20200815
-- ONC画像: v03c(較正済みL2C)
-- SPICE: hyb2_spice_v001(2025-02-14版メタカーネル)
-- 地図プロダクト: v06(ベースマップ)
-- 取得日: 2026-11-03 / 取得元: data.darts.isas.jaxa.jp, www.hayabusa2.jaxa.jp, planetarium.jp, curation.isas.jaxa.jp
+# サイト本体
+cd site && npm install && npm run build     # 開発: npm run dev
+```
 
-## 収録範囲外のデータ（完全アーカイブではない）
+単体テスト（探索アルゴリズムを含む）:
 
-- ONC全期間アーカイブ(数百GB)→ 09_manifests/data_manifest.md に代表日のURLとサイズあり
-- LiDAR点群・TIR/NIRS3生データ → DARTSのPDS4バンドル
-- 姿勢履歴CKカーネル(数GB)
-- リュウグウ試料データベース(RS-DBS)の全データ → https://curation.isas.jaxa.jp/sample-curation/ryugu/
+```bash
+python3 -m unittest discover -s tools/precompute/tests -v
+python3 -m unittest discover -s 12_site_data/tests -v
+```
+
+## リポジトリの構成（主なもの）
+
+| フォルダ | 内容 |
+|---|---|
+| `assignment/` | 課題プログラムと、生成された探索レポート（HTML） |
+| `site/` | サイト本体（Vite + TypeScript + three.js） |
+| `tools/precompute/` | 事前計算パイプライン（Python）と探索ツール |
+| `scripts/` | Cloudflare Pages 向けのビルド・アセット同期 |
+| `06_timeline_text/` | 年表（timeline.json）。探索の入力 |
+| `02_onc_images/` | ONC 画像（ギャラリー・幾何情報） |
+| `01_shape_models/`・`10_pointclouds/`・`11_spacecraft_model/` | 形状モデル、点群、探査機の3Dモデル |
+| `12_site_data/` | サイト用データ（地点、出来事、出典など） |
+| `09_manifests/` | データの収集記録、変換ツール、サイズ確認ツール |
+| `03_spice/`・`04_science_data/`・`05_mascot/`・`07_glossary_faq/`・`08_references/` | SPICE カーネル、科学データ、MASCOT データ、用語集、出典 |
+
+## データのバージョン（引用時に記録すること）
+
+- 形状モデル: SPC v20200323（最終版）・SfM v20180804/v20200815
+- ONC 画像: v03c（較正済み L2C）
+- SPICE: hyb2_spice_v001
+- 地図プロダクト: v06
+- 収集日: 2026-11-03 ／ 取得元: data.darts.isas.jaxa.jp、www.hayabusa2.jaxa.jp、planetarium.jp、curation.isas.jaxa.jp
 
 ## ライセンス
 
-- DARTS科学データ: ISASデータポリシー(CC BY 4.0、出典明記)
-- JAXA公式画像: クレジット「©JAXA」表記。商用利用は要許諾
-- 詳細: 08_references/credits_and_licenses.md
+- DARTS 科学データ: ISAS データポリシー（CC BY 4.0、出典明記）
+- JAXA 公式画像: 「©JAXA」表記。商用利用は要許諾
+- 詳細: `08_references/credits_and_licenses.md`
